@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>查詢歷史資料 - 酪梨銷售管理系統</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-top: 20px;
+            padding-bottom: 40px;
+        }
+        .container {
+            max-width: 1400px;
+        }
+        .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #198754;
+            color: white;
+            font-weight: bold;
+        }
+        .table-responsive {
+            max-height: 600px;
+            overflow: auto;
+        }
+        .spinner-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        .spinner-overlay.show {
+            display: flex;
+        }
+        .query-section {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            margin-bottom: 20px;
+        }
+        .data-info {
+            background: #e7f5ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        @media (max-width: 768px) {
+            .table {
+                font-size: 0.875rem;
+            }
+        }
+        .table thead th {
+            position: sticky;
+            top: 0;
+            background-color: #198754;
+            color: white;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Spinner -->
+    <div class="spinner-overlay" id="loadingSpinner">
+        <div class="spinner-border text-light" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">載入中...</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- 標題 -->
+        <div class="text-center mb-4">
+            <h1 class="display-5"><i class="bi bi-search"></i> 查詢歷史資料</h1>
+            <p class="text-muted">查詢試算表中各工作表的歷史記錄</p>
+        </div>
+
+        <!-- 查詢區域 -->
+        <div class="query-section">
+            <h5 class="mb-3"><i class="bi bi-funnel"></i> 選擇工作表</h5>
+            <div class="row align-items-end">
+                <div class="col-md-8 mb-3 mb-md-0">
+                    <label for="sheetSelect" class="form-label">工作表名稱</label>
+                    <select class="form-select form-select-lg" id="sheetSelect">
+                        <option value="">請選擇工作表...</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-success btn-lg w-100" id="queryBtn" disabled>
+                        <i class="bi bi-search"></i> 查詢資料
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 資料資訊 -->
+        <div class="data-info" id="dataInfo" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <strong><i class="bi bi-file-earmark-text"></i> 工作表：</strong>
+                    <span id="currentSheetName">-</span>
+                </div>
+                <div>
+                    <strong><i class="bi bi-list-ol"></i> 資料筆數：</strong>
+                    <span id="dataCount">0</span> 筆
+                </div>
+                <div>
+                    <button class="btn btn-sm btn-outline-success" id="exportBtn">
+                        <i class="bi bi-download"></i> 匯出 CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 資料列表卡片 -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-table"></i> 查詢結果
+            </div>
+            <div class="card-body">
+                <div id="noQueryMessage" class="text-center text-muted py-5">
+                    <i class="bi bi-arrow-up-circle" style="font-size: 3rem;"></i>
+                    <p class="mt-3">請先選擇工作表後點擊「查詢資料」按鈕</p>
+                </div>
+                <div class="table-responsive" id="tableContainer" style="display: none;">
+                    <table class="table table-striped table-hover align-middle" id="dataTable">
+                        <thead class="table-success">
+                            <tr id="tableHeader">
+                                <!-- 動態生成標題 -->
+                            </tr>
+                        </thead>
+                        <tbody id="dataTableBody">
+                            <!-- 動態生成資料 -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="noDataMessage" class="text-center text-muted py-5" style="display: none;">
+                    <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                    <p class="mt-3">此工作表目前沒有任何資料</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="init.js"></script>
+
+    <script>
+        // Google Apps Script Web App URL
+        // 請部署 Google Apps Script 後，將 Web App URL 填入下方
+        // const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyeBhcw4Axxju9HP3WQsTSJzPzUkA--Caa-ZUj97rE/dev';
+        
+        let currentData = null;
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSheetNames();
+            setupEventListeners();
+        });
+
+        // 設定事件監聽器
+        function setupEventListeners() {
+            document.getElementById('sheetSelect').addEventListener('change', function() {
+                const queryBtn = document.getElementById('queryBtn');
+                queryBtn.disabled = !this.value;
+            });
+            
+            document.getElementById('queryBtn').addEventListener('click', querySheetData);
+            document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+        }
+
+        // 載入工作表名稱列表
+        function loadSheetNames() {
+            showLoading(true);
+            
+            // 檢查是否已設定 URL
+            if (SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE') {
+                showLoading(false);
+                showAlert('請先在程式碼中設定 Google Apps Script Web App URL', 'warning');
+                return;
+            }
+            
+            fetch(SCRIPT_URL + '?action=getSheetNames')
+                .then(response => response.json())
+                .then(data => {
+                    showLoading(false);
+                    if (data.status === 'success') {
+                        populateSheetSelect(data.data);
+                    } else {
+                        showAlert('載入工作表名稱失敗：' + data.message, 'danger');
+                    }
+                })
+                .catch(error => {
+                    showLoading(false);
+                    console.error('Error:', error);
+                    showAlert('載入工作表名稱時發生錯誤', 'danger');
+                });
+        }
+
+        // 填充工作表下拉選單
+        function populateSheetSelect(sheetNames) {
+            const select = document.getElementById('sheetSelect');
+            
+            // 清空現有選項（保留第一個提示選項）
+            select.innerHTML = '<option value="">請選擇工作表...</option>';
+            
+            // 新增工作表選項
+            sheetNames.forEach(sheetName => {
+                const option = document.createElement('option');
+                option.value = sheetName;
+                option.textContent = sheetName;
+                select.appendChild(option);
+            });
+            
+            if (sheetNames.length === 0) {
+                showAlert('試算表中沒有任何工作表', 'info');
+            }
+        }
+
+        // 查詢工作表資料
+        function querySheetData() {
+            const sheetName = document.getElementById('sheetSelect').value;
+            
+            if (!sheetName) {
+                showAlert('請選擇工作表', 'warning');
+                return;
+            }
+            
+            showLoading(true);
+            
+            fetch(SCRIPT_URL + '?action=getSheetData&sheetName=' + encodeURIComponent(sheetName))
+                .then(response => response.json())
+                .then(data => {
+                    showLoading(false);
+                    if (data.status === 'success') {
+                        currentData = data.data;
+                        displayData(data.data);
+                    } else {
+                        showAlert('查詢資料失敗：' + data.message, 'danger');
+                    }
+                })
+                .catch(error => {
+                    showLoading(false);
+                    console.error('Error:', error);
+                    showAlert('查詢資料時發生錯誤', 'danger');
+                });
+        }
+
+        // 顯示資料
+        function displayData(result) {
+            const { sheetName, headers, data } = result;
+            
+            // 隱藏「請先查詢」訊息
+            document.getElementById('noQueryMessage').style.display = 'none';
+            
+            // 顯示資料資訊
+            document.getElementById('dataInfo').style.display = 'block';
+            document.getElementById('currentSheetName').textContent = sheetName;
+            document.getElementById('dataCount').textContent = data.length;
+            
+            if (data.length === 0 || headers.length === 0) {
+                document.getElementById('tableContainer').style.display = 'none';
+                document.getElementById('noDataMessage').style.display = 'block';
+                return;
+            }
+            
+            // 隱藏「沒有資料」訊息
+            document.getElementById('noDataMessage').style.display = 'none';
+            document.getElementById('tableContainer').style.display = 'block';
+            
+            // 生成表格標題
+            const tableHeader = document.getElementById('tableHeader');
+            tableHeader.innerHTML = headers.map(header => 
+                `<th>${escapeHtml(header)}</th>`
+            ).join('');
+            
+            // 生成表格資料
+            const tableBody = document.getElementById('dataTableBody');
+            tableBody.innerHTML = data.map(row => {
+                return `
+                <tr>
+                    ${headers.map(header => {
+                        let value = row[header];
+                        
+                        // 格式化顯示
+                        if (value === null || value === undefined || value === '') {
+                            value = '-';
+                        } else if (typeof value === 'number') {
+                            value = formatNumber(value);
+                        }
+                        
+                        return `<td>${escapeHtml(String(value))}</td>`;
+                    }).join('')}
+                </tr>
+                `;
+            }).join('');
+        }
+
+        // 匯出為 CSV
+        function exportToCSV() {
+            if (!currentData || !currentData.data || currentData.data.length === 0) {
+                showAlert('沒有資料可以匯出', 'warning');
+                return;
+            }
+            
+            const { sheetName, headers, data } = currentData;
+            
+            // 建立 CSV 內容
+            let csvContent = '\uFEFF'; // UTF-8 BOM，讓 Excel 正確顯示中文
+            
+            // 新增標題列
+            csvContent += headers.map(h => `"${h}"`).join(',') + '\n';
+            
+            // 新增資料列
+            data.forEach(row => {
+                const rowData = headers.map(header => {
+                    let value = row[header];
+                    if (value === null || value === undefined) {
+                        value = '';
+                    }
+                    // 處理包含逗號或引號的值
+                    return `"${String(value).replace(/"/g, '""')}"`;
+                });
+                csvContent += rowData.join(',') + '\n';
+            });
+            
+            // 建立下載連結
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', `${sheetName}_${getDateString()}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showAlert('CSV 檔案已下載', 'success');
+        }
+
+        // 取得日期字串 (YYYYMMDD)
+        function getDateString() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            return `${year}${month}${day}`;
+        }
+
+        // 顯示/隱藏載入動畫
+        function showLoading(show) {
+            const spinner = document.getElementById('loadingSpinner');
+            if (show) {
+                spinner.classList.add('show');
+            } else {
+                spinner.classList.remove('show');
+            }
+        }
+
+        // 顯示提示訊息
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+            alertDiv.style.zIndex = '10000';
+            alertDiv.style.minWidth = '300px';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
+        }
+
+        // 格式化數字
+        function formatNumber(num) {
+            return new Intl.NumberFormat('zh-TW').format(num || 0);
+        }
+
+        // 跳脫 HTML 特殊字元
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+    </script>
+</body>
+</html>
