@@ -391,6 +391,8 @@
 
         // 編輯記錄
         function editRecord(index) {
+            showLoading(true);
+
             fetch(SCRIPT_URL + '?action=read')
                 .then(response => response.json())
                 .then(data => {
@@ -416,9 +418,13 @@
                         
                         // 滾動到表單
                         document.getElementById('saleForm').scrollIntoView({ behavior: 'smooth' });
+
+                         showLoading(false);
+
                     }
                 })
                 .catch(error => {
+                     showLoading(false);
                     console.error('Error:', error);
                     showAlert('載入編輯資料時發生錯誤', 'danger');
                 });
