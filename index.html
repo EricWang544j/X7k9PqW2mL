@@ -105,7 +105,7 @@
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label for="totalAmount" class="form-label">實際賣出多少錢 <span class="required-mark">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
@@ -113,9 +113,14 @@
                             </div>
                         </div>
                         
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label for="avocadoCount" class="form-label">幾個酪梨 <span class="required-mark">*</span></label>
                             <input type="number" class="form-control" id="avocadoCount" required placeholder="0" min="0">
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="seedlingCount" class="form-label">賣出幾棵酪梨苗</label>
+                            <input type="number" class="form-control" id="seedlingCount" placeholder="0" min="0">
                         </div>
                     </div>
                     
@@ -176,6 +181,7 @@
                                 <th>賣出日期</th>
                                 <th>金額</th>
                                 <th>數量</th>
+                                <th>酪梨苗</th>
                                 <th>大箱</th>
                                 <th>小箱</th>
                                 <th>宅配費用</th>
@@ -185,7 +191,7 @@
                         </thead>
                         <tbody id="dataTableBody">
                             <tr>
-                                <td colspan="9" class="text-center text-muted">
+                                <td colspan="10" class="text-center text-muted">
                                     <div class="spinner-border spinner-border-sm" role="status">
                                         <span class="visually-hidden">載入中...</span>
                                     </div>
@@ -289,6 +295,7 @@
                     <td>${row.saleDate || ''}</td>
                     <td>$${formatNumber(row.totalAmount)}</td>
                     <td>${row.avocadoCount || 0}</td>
+                    <td>${row.seedlingCount || 0}</td>
                     <td>${row.largeBoxCount || 0}</td>
                     <td>${row.smallBoxCount || 0}</td>
                     <td>$${formatNumber(row.shippingCost)}</td>
@@ -315,6 +322,7 @@
                 saleDate: document.getElementById('saleDate').value,
                 totalAmount: parseFloat(document.getElementById('totalAmount').value) || 0,
                 avocadoCount: parseInt(document.getElementById('avocadoCount').value) || 0,
+                seedlingCount: parseInt(document.getElementById('seedlingCount').value) || 0,
                 largeBoxCount: parseInt(document.getElementById('largeBoxCount').value) || 0,
                 smallBoxCount: parseInt(document.getElementById('smallBoxCount').value) || 0,
                 shippingCost: parseFloat(document.getElementById('shippingCost').value) || 0,
@@ -393,6 +401,7 @@
                         document.getElementById('saleDate').value = record.saleDate || '';
                         document.getElementById('totalAmount').value = record.totalAmount || 0;
                         document.getElementById('avocadoCount').value = record.avocadoCount || 0;
+                        document.getElementById('seedlingCount').value = record.seedlingCount || 0;
                         document.getElementById('largeBoxCount').value = record.largeBoxCount || 0;
                         document.getElementById('smallBoxCount').value = record.smallBoxCount || 0;
                         document.getElementById('shippingCost').value = record.shippingCost || 0;
