@@ -395,13 +395,13 @@
                 { key: '賣出幾棵酪梨苗', label: '總酪梨苗', icon: 'bi-flower1', suffix: '棵' },
                 { key: '大箱的幾箱？', label: '總大箱數', icon: 'bi-box-seam', suffix: '箱' },
                 { key: '小箱的幾箱？', label: '總小箱數', icon: 'bi-box', suffix: '箱' },
-                { key: '宅配費用？', label: '總宅配費用', icon: 'bi-truck', prefix: '$' },
-                { key: '一斤多少？', label: '平均單價', icon: 'bi-calculator', prefix: '$', isAverage: true }
+                { key: '宅配費用？', label: '總宅配費用', icon: 'bi-truck', prefix: '$' }
             ];
             
             const statsContainer = document.getElementById('statsContainer');
             statsContainer.innerHTML = '';
             
+            // 先計算一般統計欄位
             statsFields.forEach(field => {
                 // 檢查欄位是否存在於標題中
                 if (!headers.includes(field.key)) {
@@ -409,24 +409,13 @@
                 }
                 
                 let value = 0;
-                let count = 0;
                 
                 data.forEach(row => {
                     const val = parseFloat(row[field.key]) || 0;
-                    if (val > 0 || !field.isAverage) {
-                        value += val;
-                        if (field.isAverage && val > 0) {
-                            count++;
-                        }
-                    }
+                    value += val;
                 });
                 
-                // 如果是平均值，則計算平均
-                if (field.isAverage && count > 0) {
-                    value = value / count;
-                }
-                
-                const displayValue = field.isAverage ? value.toFixed(2) : formatNumber(value);
+                const displayValue = formatNumber(value);
                 const prefix = field.prefix || '';
                 const suffix = field.suffix || '';
                 
@@ -442,6 +431,40 @@
                 
                 statsContainer.appendChild(statsItem);
             });
+            
+            // 特別計算平均單價（平均一斤多少錢）
+            if (headers.includes('一斤多少？')) {
+                let totalPrice = 0;  // 「一斤多少？」的加總
+                let count = 0;  // 有效筆數
+                
+                data.forEach(row => {
+                    const pricePerJin = parseFloat(row['一斤多少？']) || 0;
+                    
+                    // 只計算有單價的記錄
+                    if (pricePerJin > 0) {
+                        totalPrice += pricePerJin;
+                        count++;
+                    }
+                });
+                
+                // 計算平均單價 = 全部「一斤多少」加總 / 總數
+                if (count > 0) {
+                    const avgPrice = totalPrice / count;
+                    //console.log(totalPrice, count, avgPrice);   
+                    
+                    const statsItem = document.createElement('div');
+                    statsItem.className = 'col-md-3 col-sm-6';
+                    statsItem.innerHTML = `
+                        <div class="stats-item">
+                            <i class="bi bi-calculator" style="font-size: 2rem;"></i>
+                            <div class="stats-value">$${avgPrice.toFixed(2)}</div>
+                            <div class="stats-label">平均一斤單價</div>
+                        </div>
+                    `;
+                    
+                    statsContainer.appendChild(statsItem);
+                }
+            }
             
             // 顯示統計數據卡片
             document.getElementById('statsCard').style.display = 'block';
