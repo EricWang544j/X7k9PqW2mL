@@ -277,7 +277,13 @@
             
             noDataMsg.style.display = 'none';
             
-            tbody.innerHTML = data.map((row, index) => `
+            // 反轉資料陣列，讓最新的資料顯示在最前面
+            const reversedData = data.slice().reverse();
+            
+            tbody.innerHTML = reversedData.map((row, displayIndex) => {
+                // 計算實際的資料索引（因為顯示順序是反轉的）
+                const actualIndex = data.length - 1 - displayIndex;
+                return `
                 <tr>
                     <td>${escapeHtml(row.customerName || '')}</td>
                     <td>${row.saleDate || ''}</td>
@@ -288,15 +294,16 @@
                     <td>$${formatNumber(row.shippingCost)}</td>
                     <td>$${formatNumber(row.pricePerJin)}</td>
                     <td class="text-center action-buttons">
-                        <button class="btn btn-sm btn-primary" onclick="editRecord(${index})">
+                        <button class="btn btn-sm btn-primary" onclick="editRecord(${actualIndex})">
                             <i class="bi bi-pencil"></i> 編輯
                         </button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteRecord(${index})">
+                        <button class="btn btn-sm btn-danger" onclick="deleteRecord(${actualIndex})">
                             <i class="bi bi-trash"></i> 刪除
                         </button>
                     </td>
                 </tr>
-            `).join('');
+                `;
+            }).join('');
         }
 
         // 處理表單提交
