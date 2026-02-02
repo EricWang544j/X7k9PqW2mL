@@ -72,6 +72,33 @@
             color: white;
             z-index: 10;
         }
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .stats-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        .stats-item:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .stats-item .stats-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .stats-item .stats-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
     </style>
 </head>
 <body>
@@ -151,6 +178,20 @@
                 <div id="noDataMessage" class="text-center text-muted py-5" style="display: none;">
                     <i class="bi bi-inbox" style="font-size: 3rem;"></i>
                     <p class="mt-3">此工作表目前沒有任何資料</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 統計數據卡片 -->
+        <div class="card" id="statsCard" style="display: none;">
+            <div class="card-header">
+                <i class="bi bi-bar-chart-fill"></i> 統計數據
+            </div>
+            <div class="card-body">
+                <div class="stats-card">
+                    <div class="row g-3" id="statsContainer">
+                        <!-- 動態生成統計數據 -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -276,12 +317,16 @@
             if (data.length === 0 || headers.length === 0) {
                 document.getElementById('tableContainer').style.display = 'none';
                 document.getElementById('noDataMessage').style.display = 'block';
+                document.getElementById('statsCard').style.display = 'none';
                 return;
             }
             
             // 隱藏「沒有資料」訊息
             document.getElementById('noDataMessage').style.display = 'none';
             document.getElementById('tableContainer').style.display = 'block';
+            
+            // 計算並顯示統計數據
+            calculateAndDisplayStats(headers, data);
             
             // 生成表格標題
             const tableHeader = document.getElementById('tableHeader');
@@ -309,6 +354,72 @@
                 </tr>
                 `;
             }).join('');
+        }
+
+        // 計算並顯示統計數據
+        function calculateAndDisplayStats(headers, data) {
+            if (data.length === 0) {
+                document.getElementById('statsCard').style.display = 'none';
+                return;
+            }
+            
+            // 定義需要統計的欄位及其中文名稱
+            const statsFields = [
+                { key: '實際賣出多少錢', label: '總銷售金額', icon: 'bi-currency-dollar', prefix: '$' },
+                { key: '幾個酪梨', label: '總酪梨數量', icon: 'bi-egg', suffix: '個' },
+                { key: '賣出幾棵酪梨苗', label: '總酪梨苗', icon: 'bi-flower1', suffix: '棵' },
+                { key: '大箱的幾箱？', label: '總大箱數', icon: 'bi-box-seam', suffix: '箱' },
+                { key: '小箱的幾箱？', label: '總小箱數', icon: 'bi-box', suffix: '箱' },
+                { key: '宅配費用？', label: '總宅配費用', icon: 'bi-truck', prefix: '$' },
+                { key: '一斤多少？', label: '平均單價', icon: 'bi-calculator', prefix: '$', isAverage: true }
+            ];
+            
+            const statsContainer = document.getElementById('statsContainer');
+            statsContainer.innerHTML = '';
+            
+            statsFields.forEach(field => {
+                // 檢查欄位是否存在於標題中
+                if (!headers.includes(field.key)) {
+                    return;
+                }
+                
+                let value = 0;
+                let count = 0;
+                
+                data.forEach(row => {
+                    const val = parseFloat(row[field.key]) || 0;
+                    if (val > 0 || !field.isAverage) {
+                        value += val;
+                        if (field.isAverage && val > 0) {
+                            count++;
+                        }
+                    }
+                });
+                
+                // 如果是平均值，則計算平均
+                if (field.isAverage && count > 0) {
+                    value = value / count;
+                }
+                
+                const displayValue = field.isAverage ? value.toFixed(2) : formatNumber(value);
+                const prefix = field.prefix || '';
+                const suffix = field.suffix || '';
+                
+                const statsItem = document.createElement('div');
+                statsItem.className = 'col-md-3 col-sm-6';
+                statsItem.innerHTML = `
+                    <div class="stats-item">
+                        <i class="bi ${field.icon}" style="font-size: 2rem;"></i>
+                        <div class="stats-value">${prefix}${displayValue}${suffix}</div>
+                        <div class="stats-label">${field.label}</div>
+                    </div>
+                `;
+                
+                statsContainer.appendChild(statsItem);
+            });
+            
+            // 顯示統計數據卡片
+            document.getElementById('statsCard').style.display = 'block';
         }
 
         // 匯出為 CSV

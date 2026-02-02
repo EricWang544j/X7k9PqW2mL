@@ -56,6 +56,33 @@
         .action-buttons {
             white-space: nowrap;
         }
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .stats-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        .stats-item:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .stats-item .stats-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .stats-item .stats-label {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
         @media (max-width: 768px) {
             .table {
                 font-size: 0.875rem;
@@ -205,6 +232,14 @@
                     <i class="bi bi-inbox" style="font-size: 3rem;"></i>
                     <p>目前沒有任何銷售記錄</p>
                 </div>
+                
+                <!-- 統計數據 -->
+                <div class="stats-card" id="statsCard" style="display: none;">
+                    <h5 class="mb-3"><i class="bi bi-bar-chart-fill"></i> 統計數據</h5>
+                    <div class="row g-3" id="statsContainer">
+                        <!-- 動態生成統計數據 -->
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -279,10 +314,14 @@
             if (data.length === 0) {
                 tbody.innerHTML = '';
                 noDataMsg.style.display = 'block';
+                document.getElementById('statsCard').style.display = 'none';
                 return;
             }
             
             noDataMsg.style.display = 'none';
+            
+            // 計算並顯示統計數據
+            calculateAndDisplayStats(data);
             
             // 反轉資料陣列，讓最新的資料顯示在最前面
             const reversedData = data.slice().reverse();
@@ -312,6 +351,54 @@
                 </tr>
                 `;
             }).join('');
+        }
+
+        // 計算並顯示統計數據
+        function calculateAndDisplayStats(data) {
+            if (data.length === 0) {
+                document.getElementById('statsCard').style.display = 'none';
+                return;
+            }
+            
+            // 計算總銷售金額和總宅配費用
+            let totalSales = 0;
+            let totalShipping = 0;
+            
+            data.forEach(row => {
+                totalSales += parseFloat(row.totalAmount) || 0;
+                totalShipping += parseFloat(row.shippingCost) || 0;
+            });
+            
+            // 計算淨收入（銷售金額 - 宅配費用）
+            const netIncome = totalSales - totalShipping;
+            
+            const statsContainer = document.getElementById('statsContainer');
+            statsContainer.innerHTML = `
+                <div class="col-md-4">
+                    <div class="stats-item">
+                        <i class="bi bi-currency-dollar" style="font-size: 2.5rem;"></i>
+                        <div class="stats-value">$${formatNumber(totalSales)}</div>
+                        <div class="stats-label">總銷售金額</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stats-item">
+                        <i class="bi bi-truck" style="font-size: 2.5rem;"></i>
+                        <div class="stats-value">$${formatNumber(totalShipping)}</div>
+                        <div class="stats-label">總宅配費用</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stats-item">
+                        <i class="bi bi-cash-coin" style="font-size: 2.5rem;"></i>
+                        <div class="stats-value">$${formatNumber(netIncome)}</div>
+                        <div class="stats-label">淨收入</div>
+                    </div>
+                </div>
+            `;
+            
+            // 顯示統計數據卡片
+            document.getElementById('statsCard').style.display = 'block';
         }
 
         // 處理表單提交
