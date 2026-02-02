@@ -120,21 +120,29 @@
                     </div>
                     
                     <div class="row">
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label for="largeBoxCount" class="form-label">大箱的幾箱？</label>
                             <input type="number" class="form-control" id="largeBoxCount" placeholder="0" min="0">
                         </div>
                         
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label for="smallBoxCount" class="form-label">小箱的幾箱？</label>
                             <input type="number" class="form-control" id="smallBoxCount" placeholder="0" min="0" >
                         </div>
                         
-                        <div class="col-md-4 mb-3">
-                            <label for="shippingCost" class="form-label">宅配費用一斤多少？</label>
+                        <div class="col-md-3 mb-3">
+                            <label for="shippingCost" class="form-label">宅配費用？</label>
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
                                 <input type="number" class="form-control" id="shippingCost" placeholder="0" min="0" >
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label for="pricePerJin" class="form-label">一斤多少？</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="pricePerJin" placeholder="0" min="0" >
                             </div>
                         </div>
                     </div>
@@ -171,12 +179,13 @@
                                 <th>大箱</th>
                                 <th>小箱</th>
                                 <th>宅配費用</th>
+                                <th>一斤多少</th>
                                 <th class="text-center">操作</th>
                             </tr>
                         </thead>
                         <tbody id="dataTableBody">
                             <tr>
-                                <td colspan="8" class="text-center text-muted">
+                                <td colspan="9" class="text-center text-muted">
                                     <div class="spinner-border spinner-border-sm" role="status">
                                         <span class="visually-hidden">載入中...</span>
                                     </div>
@@ -277,6 +286,7 @@
                     <td>${row.largeBoxCount || 0}</td>
                     <td>${row.smallBoxCount || 0}</td>
                     <td>$${formatNumber(row.shippingCost)}</td>
+                    <td>$${formatNumber(row.pricePerJin)}</td>
                     <td class="text-center action-buttons">
                         <button class="btn btn-sm btn-primary" onclick="editRecord(${index})">
                             <i class="bi bi-pencil"></i> 編輯
@@ -300,7 +310,8 @@
                 avocadoCount: parseInt(document.getElementById('avocadoCount').value) || 0,
                 largeBoxCount: parseInt(document.getElementById('largeBoxCount').value) || 0,
                 smallBoxCount: parseInt(document.getElementById('smallBoxCount').value) || 0,
-                shippingCost: parseFloat(document.getElementById('shippingCost').value) || 0
+                shippingCost: parseFloat(document.getElementById('shippingCost').value) || 0,
+                pricePerJin: parseFloat(document.getElementById('pricePerJin').value) || 0
             };
 
             if (editMode) {
@@ -378,6 +389,7 @@
                         document.getElementById('largeBoxCount').value = record.largeBoxCount || 0;
                         document.getElementById('smallBoxCount').value = record.smallBoxCount || 0;
                         document.getElementById('shippingCost').value = record.shippingCost || 0;
+                        document.getElementById('pricePerJin').value = record.pricePerJin || 0;
                         
                         editMode = true;
                         currentEditRow = index;
