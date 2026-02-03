@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>查詢歷史資料 - 酪梨支出記錄</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 10px;
+            border: none;
+        }
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+            padding: 15px 20px;
+        }
+        .table-responsive {
+            margin-top: 20px;
+        }
+        .loading {
+            text-align: center;
+            padding: 50px;
+        }
+        .table {
+            margin-bottom: 0;
+        }
+        .table thead th {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .badge-amount {
+            font-size: 1rem;
+            padding: 8px 12px;
+        }
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+        .query-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .result-count {
+            margin-top: 10px;
+            font-weight: 600;
+            color: #667eea;
+        }
+        .total-expense {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 0 0 10px 10px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .total-expense i {
+            margin-right: 10px;
+        }
+        .total-expense-amount {
+            font-size: 2rem;
+            margin-left: 10px;
+        }
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .table {
+                font-size: 0.875rem;
+            }
+            .card-header h5 {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="mb-0 text-white">
+                <i class="bi bi-clock-history"></i> 查詢歷史資料
+            </h1>
+            <a href="../index.html" class="btn btn-outline-light">
+                <i class="bi bi-house-door"></i> 回首頁
+            </a>
+        </div>
+        
+        <!-- 查詢區域 -->
+        <div class="query-section mb-4">
+            <div class="row align-items-end">
+                <div class="col-md-8 mb-3 mb-md-0">
+                    <label for="sheetSelect" class="form-label">
+                        <i class="bi bi-file-earmark-spreadsheet"></i> 選擇工作表
+                    </label>
+                    <select class="form-select form-select-lg" id="sheetSelect">
+                        <option value="">請選擇工作表...</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-primary btn-lg w-100" id="queryBtn" onclick="querySheetData()">
+                        <i class="bi bi-search"></i> 查詢資料
+                    </button>
+                </div>
+            </div>
+            <div id="resultCount" class="result-count" style="display: none;"></div>
+        </div>
+        
+        <!-- 載入中區域 -->
+        <div id="loadingDiv" class="loading" style="display: none;">
+            <div class="spinner-border text-light" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">載入中...</span>
+            </div>
+            <p class="text-white mt-3">載入中，請稍候...</p>
+        </div>
+        
+        <!-- 結果區域 -->
+        <div class="card" id="resultCard" style="display: none;">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-table"></i> 查詢結果
+                    <span id="sheetNameDisplay" class="ms-2"></span>
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0" id="dataTable">
+                        <thead class="table-light">
+                            <tr id="tableHeader">
+                                <!-- 動態生成表頭 -->
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- 動態生成資料列 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="total-expense" id="totalExpenseDiv" style="display: none;">
+                <i class="bi bi-calculator"></i>
+                總支出：
+                <span class="total-expense-amount" id="totalExpenseAmount">$0</span>
+            </div>
+        </div>
+        
+        <!-- 無資料提示 -->
+        <div class="card" id="noDataCard" style="display: none;">
+            <div class="card-body">
+                <div class="no-data">
+                    <i class="bi bi-inbox" style="font-size: 4rem; color: #dee2e6;"></i>
+                    <h4 class="mt-3" style="color: #6c757d;">暫無資料</h4>
+                    <p class="text-muted">所選工作表中沒有資料記錄</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="init.js"></script>
+
+    <script>
+        // ===== 重要：GAS_API_URL 已在 init.js 中定義 =====
+        // 如果有問題，也可以在此處直接設定：
+        // const GAS_API_URL = 'YOUR_GAS_WEB_APP_URL_HERE';
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSheetNames();
+        });
+        
+        /**
+         * 載入工作表名稱列表
+         */
+        async function loadSheetNames() {
+            try {
+                showLoading(true);
+                  
+                const response = await fetch(GAS_API_URL + '?action=getSheetNames', {
+                    method: 'GET',
+                    redirect: 'follow'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('網路回應不正常：' + response.status);
+                }
+                
+                const result = await response.json();
+                
+                console.log(result)
+
+                showLoading(false);
+                
+                if (result.status === 'success') {
+                    displaySheetNames(result.data);
+                } else {
+                    showError('載入工作表失敗：' + result.message);
+                }
+            } catch (error) {
+                showLoading(false);
+                showError('載入工作表失敗：' + error.message);
+                console.error(error);
+            }
+        }
+        
+        /**
+         * 顯示工作表名稱列表
+         */
+        function displaySheetNames(sheetNames) {
+            const select = document.getElementById('sheetSelect');
+            
+            // 清空現有選項（保留第一個預設選項）
+            select.innerHTML = '<option value="">請選擇工作表...</option>';
+            
+            if (sheetNames.length === 0) {
+                select.innerHTML += '<option value="" disabled>沒有可用的工作表</option>';
+                return;
+            }
+            
+            // 加入工作表選項
+            sheetNames.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            });
+        }
+        
+        /**
+         * 查詢工作表資料
+         */
+        async function querySheetData() {
+            const sheetName = document.getElementById('sheetSelect').value;
+            
+            if (!sheetName) {
+                alert('請先選擇工作表');
+                return;
+            }
+            
+            try {
+                showLoading(true);
+                hideResults();
+                
+                const response = await fetch(
+                    GAS_API_URL + '?action=getSheetData&sheetName=' + encodeURIComponent(sheetName),
+                    {
+                        method: 'GET',
+                        redirect: 'follow'
+                    }
+                );
+                
+                if (!response.ok) {
+                    throw new Error('網路回應不正常：' + response.status);
+                }
+                
+                const result = await response.json();
+                
+                showLoading(false);
+                
+                if (result.status === 'success') {
+                    displaySheetData(result.data);
+                } else {
+                    showError('查詢失敗：' + result.message);
+                }
+            } catch (error) {
+                showLoading(false);
+                showError('查詢失敗：' + error.message);
+                console.error(error);
+            }
+        }
+        
+        /**
+         * 顯示工作表資料
+         */
+        function displaySheetData(data) {
+            const { sheetName, headers, data: rows } = data;
+            
+            // 如果沒有資料
+            if (!rows || rows.length === 0) {
+                document.getElementById('noDataCard').style.display = 'block';
+                document.getElementById('resultCard').style.display = 'none';
+                return;
+            }
+            
+            // 顯示工作表名稱
+            document.getElementById('sheetNameDisplay').textContent = `(${sheetName})`;
+            
+            // 建立表頭
+            const headerRow = document.getElementById('tableHeader');
+            headerRow.innerHTML = '';
+            
+            // 根據需求，只顯示特定欄位
+            const displayColumns = ['支出項目', '支出日期', '支出金額', '支出備註', '建立日期'];
+            
+            displayColumns.forEach(column => {
+                const th = document.createElement('th');
+                th.textContent = column;
+                headerRow.appendChild(th);
+            });
+            
+            // 建立資料列並計算總支出
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            let totalExpense = 0;
+            
+            rows.forEach(row => {
+                const tr = document.createElement('tr');
+                
+                displayColumns.forEach(column => {
+                    const td = document.createElement('td');
+                    const value = row[column];
+                    
+                    // 特殊處理不同欄位
+                    if (column === '支出金額') {
+                        td.innerHTML = `<span class="badge bg-danger badge-amount">$${formatNumber(value)}</span>`;
+                        // 累加支出金額
+                        const amount = parseFloat(value) || 0;
+                        totalExpense += amount;
+                    } else if (column === '支出項目') {
+                        td.innerHTML = `<i class="bi bi-tag-fill text-primary"></i> ${value || '-'}`;
+                    } else if (column === '支出日期') {
+                        td.innerHTML = `<i class="bi bi-calendar-event"></i> ${value || '-'}`;
+                    } else if (column === '建立日期') {
+                        td.innerHTML = `<small class="text-muted"><i class="bi bi-clock"></i> ${value || '-'}</small>`;
+                    } else {
+                        td.textContent = value || '-';
+                    }
+                    
+                    tr.appendChild(td);
+                });
+                
+                tbody.appendChild(tr);
+            });
+            
+            // 顯示總支出
+            const totalExpenseAmount = document.getElementById('totalExpenseAmount');
+            totalExpenseAmount.textContent = '$' + formatNumber(totalExpense);
+            document.getElementById('totalExpenseDiv').style.display = 'block';
+            
+            // 顯示結果卡片
+            document.getElementById('resultCard').style.display = 'block';
+            document.getElementById('noDataCard').style.display = 'none';
+            
+            // 顯示資料筆數
+            const resultCount = document.getElementById('resultCount');
+            resultCount.textContent = `找到 ${rows.length} 筆資料`;
+            resultCount.style.display = 'block';
+            
+            // 捲動到結果區域
+            document.getElementById('resultCard').scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start' 
+            });
+        }
+        
+        /**
+         * 顯示/隱藏載入中
+         */
+        function showLoading(show) {
+            document.getElementById('loadingDiv').style.display = show ? 'block' : 'none';
+            document.getElementById('queryBtn').disabled = show;
+        }
+        
+        /**
+         * 隱藏結果區域
+         */
+        function hideResults() {
+            document.getElementById('resultCard').style.display = 'none';
+            document.getElementById('noDataCard').style.display = 'none';
+            document.getElementById('resultCount').style.display = 'none';
+            document.getElementById('totalExpenseDiv').style.display = 'none';
+        }
+        
+        /**
+         * 顯示錯誤訊息
+         */
+        function showError(message) {
+            alert(message);
+        }
+        
+        /**
+         * 格式化數字（加上千分位）
+         */
+        function formatNumber(num) {
+            if (num === null || num === undefined || num === '') return '0';
+            return parseInt(num).toLocaleString('zh-TW');
+        }
+    </script>
+</body>
+</html>
